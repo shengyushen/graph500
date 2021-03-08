@@ -29,6 +29,7 @@ static const int ulong_bits = sizeof(unsigned long) * CHAR_BIT;
 
 /* Distribute edges by their endpoints (make two directed copies of each input
  * undirected edge); distribution is 1-d and cyclic. */
+// SSY MOD_SIZE is simply modulo of size
 #ifdef SIZE_MUST_BE_A_POWER_OF_TWO
 #define MOD_SIZE(v) ((v) & ((1 << lgsize) - 1))
 #define DIV_SIZE(v) ((v) >> lgsize)

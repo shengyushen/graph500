@@ -22,15 +22,15 @@ MPI_Datatype packed_edge_mpi_type;
 
 void setup_globals() {
 	MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-	MPI_Comm_size(MPI_COMM_WORLD, &size);
+	MPI_Comm_size(MPI_COMM_WORLD, &size); // SSY size is total number of ranks
 
 #ifdef SIZE_MUST_BE_A_POWER_OF_TWO
 	if (/* Check for power of 2 */ (size & (size - 1)) != 0) {
 		fprintf(stderr, "Number of processes %d is not a power of two, yet SIZE_MUST_BE_A_POWER_OF_TWO is defined in common.h.\n", size);
 		MPI_Abort(MPI_COMM_WORLD, 1);
 	}
-	for (lgsize = 0; lgsize < size; ++lgsize) {
-		if ((1 << lgsize) == size) break;
+	for (lgsize = 0; lgsize < size; ++lgsize) { // SSY try all size
+		if ((1 << lgsize) == size) break;// SSY simply get the log of size
 	}
 	assert (lgsize < size);
 #endif

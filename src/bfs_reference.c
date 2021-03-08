@@ -50,16 +50,17 @@ typedef struct visitmsg {
 
 //AM-handler for check&visit
 void visithndl(int from,void* data,int sz) {
-	visitmsg *m = data;
-	if (!TEST_VISITEDLOC(m->vloc)) {
+	visitmsg *m = data; // SSY vloc and vfrom
+	if (!TEST_VISITEDLOC(m->vloc)) { // SSY test and set visited 
 		SET_VISITEDLOC(m->vloc);
-		q2[q2c++] = m->vloc;
+		q2[q2c++] = m->vloc; // SSY allocated on current node
 		pred_glob[m->vloc] = VERTEX_TO_GLOBAL(from,m->vfrom);
-	}
+	} // SSY return nothing
 }
 
 inline void send_visit(int64_t glob, int from) {
-	visitmsg m = {VERTEX_LOCAL(glob),from};
+	visitmsg m = {VERTEX_LOCAL(glob),from}; // SSY next and current
+	// SSY visithndl is registered below with 1
 	aml_send(&m,1,sizeof(visitmsg),VERTEX_OWNER(glob));
 }
 
@@ -92,8 +93,8 @@ void run_bfs(int64_t root, int64_t* pred) {
 	if(VERTEX_OWNER(root) == rank) {
 		pred[VERTEX_LOCAL(root)]=root;
 		SET_VISITED(root);
-		q1[0]=VERTEX_LOCAL(root);
-		qc=1;
+		q1[0]=VERTEX_LOCAL(root);// SSY current level
+		qc=1; // SSY count 
 	} 
 
 	// While there are vertices in current level
@@ -103,9 +104,9 @@ void run_bfs(int64_t root, int64_t* pred) {
 		nbytes_sent=0; nbytes_rcvd=0;
 #endif
 		//for all vertices in current level send visit AMs to all neighbours
-		for(i=0;i<qc;i++)
-			for(j=rowstarts[q1[i]];j<rowstarts[q1[i]+1];j++)
-				send_visit(COLUMN(j),q1[i]);
+		for(i=0;i<qc;i++) // SSY iterate through current level
+			for(j=rowstarts[q1[i]];j<rowstarts[q1[i]+1];j++) // SSY their next step
+				send_visit(COLUMN(j),q1[i]); // SSY next current
 		aml_barrier();
 
 		qc=q2c;int *tmp=q1;q1=q2;q2=tmp;

@@ -64,6 +64,7 @@ void relaxhndl(int from, void* dat, int sz) {
 //Sending relaxation active message
 void send_relax(int64_t glob, float weight,int fromloc) {
 	relaxmsg m = {weight,VERTEX_LOCAL(glob),fromloc};
+	// SSY 1 as index of relaxhndl
 	aml_send(&m,1,sizeof(relaxmsg),VERTEX_OWNER(glob));
 }
 
@@ -80,6 +81,7 @@ void run_sssp(int64_t root,int64_t* pred,float *dist) {
 	pred_glob=pred;
 	qc=0;q2c=0;
 
+	// SSY register as 1
 	aml_register_handler(relaxhndl,1);
 
 	if (VERTEX_OWNER(root) == my_pe()) {

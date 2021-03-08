@@ -281,7 +281,9 @@ inline void aml_send_intra(void *src, int type, int length, int local, int from)
 
 	memcpy(dst+sizeof(struct hdri),src,length);
 }
-
+//SSY type is the registered proc to be called
+// src is argument
+// length is siz eof src
 SOATTR void aml_send(void *src, int type,int length, int node ) {
 	if ( node == myproc )
 		return aml_handlers[type](myproc,src,length);

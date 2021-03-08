@@ -68,7 +68,7 @@ void get_statistics(const double x[], int n, volatile double r[s_LAST]) {
 }
 
 int main(int argc, char** argv) {
-	aml_init(&argc,&argv); //includes MPI_Init inside
+	aml_init(&argc,&argv); // SSY includes MPI_Init inside
 	setup_globals();
 
 	/* Parse arguments. */
@@ -98,7 +98,7 @@ int main(int argc, char** argv) {
 
 	tuple_graph tg;
 	tg.nglobaledges = (int64_t)(edgefactor) << SCALE;
-	int64_t nglobalverts = (int64_t)(1) << SCALE;
+	int64_t nglobalverts = (int64_t)(1) << SCALE; // SSY huge number of vertex
 
 	tg.data_in_file = (filename != NULL);
 	tg.write_file = 1;
@@ -106,10 +106,12 @@ int main(int argc, char** argv) {
 	if (tg.data_in_file) {
 		int is_opened = 0;
 		int mode = MPI_MODE_RDWR | MPI_MODE_EXCL | MPI_MODE_UNIQUE_OPEN;
+		// SSY open weightfile and edgefile
 		if (!reuse_file) {
 			mode |= MPI_MODE_CREATE | MPI_MODE_DELETE_ON_CLOSE;
 		} else {
 			MPI_File_set_errhandler(MPI_FILE_NULL, MPI_ERRORS_RETURN);
+                        // SSY read files from MPI IO
 			if (MPI_File_open(MPI_COMM_WORLD, (char*)filename, mode,
 						MPI_INFO_NULL, &tg.edgefile)) {
 				if (0 == rank && getenv("VERBOSE"))
@@ -143,7 +145,7 @@ int main(int argc, char** argv) {
 		}
 		MPI_File_set_errhandler(MPI_FILE_NULL, MPI_ERRORS_ARE_FATAL);
 		if (!is_opened) {
-			MPI_File_open(MPI_COMM_WORLD, (char*)filename, mode, MPI_INFO_NULL, &tg.edgefile);
+			MPI_File_open(MPI_COMM_WORLD, (char*)filename, mode, MPI_INFO_NULL, &tg.edgefile); // SSY open in edgefile
 			MPI_File_set_size(tg.edgefile, tg.nglobaledges * sizeof(packed_edge));
 		}
 #ifdef SSSP
@@ -151,6 +153,7 @@ int main(int argc, char** argv) {
 			MPI_File_open(MPI_COMM_WORLD, (char*)wfilename, wmode, MPI_INFO_NULL, &tg.weightfile);
 			MPI_File_set_size(tg.weightfile, tg.nglobaledges * sizeof(float));
 		}    
+		// SSY all set to offset 0
 		MPI_File_set_view(tg.weightfile, 0, MPI_FLOAT, MPI_FLOAT, "native", MPI_INFO_NULL);
 		MPI_File_set_atomicity(tg.weightfile, 0);
 #endif
@@ -161,7 +164,7 @@ int main(int argc, char** argv) {
 	/* Make the raw graph edges. */
 	/* Get roots for BFS runs, plus maximum vertex with non-zero degree (used by
 	 * validator). */
-	int num_bfs_roots = 64;
+	int num_bfs_roots = 64; //SSY multiple start point
 	int64_t* bfs_roots = (int64_t*)xmalloc(num_bfs_roots * sizeof(int64_t));
 
 	double make_graph_start = MPI_Wtime();
@@ -188,16 +191,16 @@ int main(int argc, char** argv) {
 		int my_row = -1, my_col = -1;
 		MPI_Comm cart_comm;
 		{
-			int dims[2] = {size / ranks_per_row, ranks_per_row};
-			int periods[2] = {0, 0};
-			MPI_Cart_create(MPI_COMM_WORLD, 2, dims, periods, 1, &cart_comm);
+			int dims[2] = {size / ranks_per_row, ranks_per_row}; // SSY number of ranks on every row
+			int periods[2] = {0, 0}; //SSY no period
+			MPI_Cart_create(MPI_COMM_WORLD, 2, dims, periods, 1, &cart_comm); // SSY create cartesian logical topology
 		}
 		int in_generating_rectangle = 0;
 		if (cart_comm != MPI_COMM_NULL) {
 			in_generating_rectangle = 1;
 			{
 				int dims[2], periods[2], coords[2];
-				MPI_Cart_get(cart_comm, 2, dims, periods, coords);
+				MPI_Cart_get(cart_comm, 2, dims, periods, coords); // SSY getting row and column of this process
 				my_row = coords[0];
 				my_col = coords[1];
 			}
@@ -305,11 +308,11 @@ int main(int argc, char** argv) {
 	{
 		uint64_t counter = 0;
 		int bfs_root_idx;
-		for (bfs_root_idx = 0; bfs_root_idx < num_bfs_roots; ++bfs_root_idx) {
+		for (bfs_root_idx = 0; bfs_root_idx < num_bfs_roots; ++bfs_root_idx) { // SSY iterate through num_bfs_roots
 			int64_t root;
 			while (1) {
 				double d[2];
-				make_random_numbers(2, seed1, seed2, counter, d);
+				make_random_numbers(2, seed1, seed2, counter, d); // SSY create random number in d
 				root = (int64_t)((d[0] + d[1]) * nglobalverts) % nglobalverts;
 				counter += 2;
 				if (counter > 2 * nglobalverts) break;
@@ -323,6 +326,7 @@ int main(int argc, char** argv) {
 				}
 				if (is_duplicate) continue; /* Everyone takes the same path here */
 				int root_bad = isisolated(root);
+				// SSY find out bad globally
 				MPI_Allreduce(MPI_IN_PLACE, &root_bad, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
 				if (!root_bad) break;
 			}
@@ -340,7 +344,7 @@ int main(int argc, char** argv) {
 	int validation_passed = 1;
 	double* bfs_times = (double*)xmalloc(num_bfs_roots * sizeof(double));
 	double* validate_times = (double*)xmalloc(num_bfs_roots * sizeof(double));
-	uint64_t nlocalverts = get_nlocalverts_for_pred();
+	uint64_t nlocalverts = get_nlocalverts_for_pred(); //SSY local vertex number
 	int64_t* pred = (int64_t*)xMPI_Alloc_mem(nlocalverts * sizeof(int64_t));
 	float* shortest = (float*)xMPI_Alloc_mem(nlocalverts * sizeof(float));
 
@@ -348,6 +352,7 @@ int main(int argc, char** argv) {
 	int bfs_root_idx,i;
 	if (!getenv("SKIP_BFS")) {
 		clean_pred(&pred[0]); //user-provided function from bfs_implementation.c
+		// SSY src/bfs_reference.c
 		run_bfs(bfs_roots[0], &pred[0]); //warm-up
 #ifdef ENERGYLOOP_BFS
                 int eloop;
@@ -365,6 +370,7 @@ int main(int argc, char** argv) {
 		}
 
 		for (bfs_root_idx = 0; bfs_root_idx < num_bfs_roots; ++bfs_root_idx) {
+			// SSY getting current root
 			int64_t root = bfs_roots[bfs_root_idx];
 
 			if (rank == 0) fprintf(stderr, "Running BFS %d\n", bfs_root_idx);
@@ -408,6 +414,7 @@ int main(int argc, char** argv) {
 
 	clean_shortest(shortest);
 	clean_pred(pred);
+	// SSY src/sssp_reference.c
 	run_sssp(bfs_roots[0], &pred[0],shortest); //warm-up
 #ifdef ENERGYLOOP_SSSP
 		int eloop;

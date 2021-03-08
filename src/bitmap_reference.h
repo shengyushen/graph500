@@ -11,6 +11,7 @@
 #define ulong_bits 64
 #define ulong_mask &63
 #define ulong_shift >>6
+// SSY VERTEX_LOCAL is the index in current local node, but why shift right 6 ?
 #define SET_VISITED(v) do {visited[VERTEX_LOCAL((v)) ulong_shift] |= (1UL << (VERTEX_LOCAL((v)) ulong_mask));} while (0)
 #define SET_VISITEDLOC(v) do {visited[(v) ulong_shift] |= (1ULL << ((v) ulong_mask));} while (0)
 #define TEST_VISITED(v) ((visited[VERTEX_LOCAL((v)) ulong_shift] & (1UL << (VERTEX_LOCAL((v)) ulong_mask))) != 0)
